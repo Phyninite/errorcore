@@ -33,7 +33,22 @@ typedef struct {
     EGLContext context;
     int screen_width;
     int screen_height;
+    pthread_t render_thread;
+    int thread_active;
 } exploit_client;
+
+void* render_thread_func(void* arg) {
+    exploit_client* renderer = (exploit_client*)arg;
+    
+    while (renderer->thread_active) {
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        eglSwapBuffers(renderer->display, renderer->egl_surface);
+        usleep(16667);
+    }
+    
+    return NULL;
+}
 
 int initialize_renderer(exploit_client* renderer) {
     renderer->client = new android::SurfaceComposerClient();
@@ -93,6 +108,9 @@ int initialize_renderer(exploit_client* renderer) {
 
     glViewport(0, 0, renderer->screen_width, renderer->screen_height);
 
+    renderer->thread_active = 1;
+    pthread_create(&renderer->render_thread, NULL, render_thread_func, renderer);
+
     return 1;
 }
 
@@ -103,6 +121,9 @@ void render_frame(exploit_client* renderer) {
 }
 
 void cleanup_renderer(exploit_client* renderer) {
+    renderer->thread_active = 0;
+    pthread_join(renderer->render_thread, NULL);
+    
     eglMakeCurrent(renderer->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(renderer->display, renderer->context);
     eglDestroySurface(renderer->display, renderer->egl_surface);
