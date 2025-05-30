@@ -1,8 +1,7 @@
 #pragma once
-#include <string>
+#include <cstdint>
 
-namespace memory::libraries {
-	auto waitforlib(const char* const name) -> void;
-	auto getaddr(const char* const name, std::int64_t addy) -> int64_t;
-	auto islibloaded(const char* const name) -> bool;
+namespace memory {
+    auto rebaseAddress(std::uint64_t relativeAddr) -> std::uint64_t;
+    auto findLibrary(const char* library) -> std::uint64_t;
 }
