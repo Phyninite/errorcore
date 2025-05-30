@@ -1,62 +1,50 @@
 #include "memory.hpp"
+
 #include <thread>
 #include <cstdio>
-#include "../logs.h"
 #include <string>
 #include <fstream>
-#include <sstream>
+#include <iostream>
+#include <dlfcn.h>
+#include <cstdint>
 
-auto memory::libraries::getaddr(const char* const name, std::int64_t addy) -> int64_t
+static uint64_t base;
+
+auto memory::findLibrary(const char* library) -> std::uint64_t
 {
-	auto base = std::int64_t{ 0 };
+	char filename[0xFF] = { 0 },
+		buffer[1024] = { 0 };
+	FILE* fp = NULL;
+	std::uint64_t address = 0;
 
-	if (!std::ifstream("/proc/self/maps")) {
-		LOGE("Failed to open /proc/self/maps");
+	sprintf(filename, "/proc/self/maps");
+
+	fp = fopen(filename, "rt");
+	if (fp == NULL) {
+		perror("fopen");
+		goto done;
 	}
 
-	std::string line;
-	while (std::getline(std::ifstream("/proc/self/maps"), line)) {
-		if (line.find(name) != std::string::npos) {
-			base = strtoul(line.c_str(), nullptr, 16);
-			break;
+	while (fgets(buffer, sizeof(buffer), fp)) {
+		if (strstr(buffer, library)) {
+			address = static_cast<std::uint64_t>(strtoul(buffer, NULL, 16));
+			goto done;
 		}
 	}
 
-	return base;
+done:
+
+	if (fp) {
+		fclose(fp);
+	}
+
+	return address;
 }
 
-auto memory::libraries::islibloaded(const char* const name) -> bool
+auto memory::rebaseAddress(std::uint64_t relativeAddr) -> std::uint64_t
 {
-	LOGD("Calling islibloaded function.");
-
-	std::ifstream maps("/proc/self/maps");
-
-	if (!maps.is_open()) {
-		LOGE("Failed to open /proc/self/maps");
-		return false;
-	}
-
-	bool found{ false };
-	for (std::string line; std::getline(maps, line);) {
-		LOGD("Line is %s", line.c_str());
-
-		if (line.find(name) != std::string::npos) {
-			found = true;
-			break;
-		}
-	}
-
-	maps.close();
-
-	return found;
-}
-
-auto memory::libraries::waitforlib(const char* const name) -> void
-{
-	LOGD("Calling waitforlib function.");
-	while (!islibloaded(name))
-	{
-		LOGD("Library '{}' not loaded yet", name);
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}
+	base = findLibrary(TARGET_LIB);
+	if (base == 0)
+		return 0;
+	return base + relativeAddr;
 }
