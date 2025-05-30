@@ -5,6 +5,25 @@
 #include <gui/SurfaceComposerClient.h>
 #include <ui/DisplayInfo.h>
 
+const char* vertex_shader_source = 
+"#version 320 es\n"
+"layout (location = 0) in vec3 position;\n"
+"layout (location = 1) in vec2 texCoord;\n"
+"out vec2 TexCoord;\n"
+"void main() {\n"
+"    gl_Position = vec4(position, 1.0);\n"
+"    TexCoord = texCoord;\n"
+"}\n";
+
+const char* fragment_shader_source = 
+"#version 320 es\n"
+"precision mediump float;\n"
+"in vec2 TexCoord;\n"
+"out vec4 FragColor;\n"
+"void main() {\n"
+"    FragColor = vec4(0.0, 0.0, 0.0, 0.0);\n"
+"}\n";
+
 typedef struct {
     void* client;
     void* surface_control;
@@ -14,9 +33,9 @@ typedef struct {
     EGLContext context;
     int screen_width;
     int screen_height;
-} exploit_renderer;
+} exploit_client;
 
-int initialize_renderer(exploit_renderer* renderer) {
+int initialize_renderer(exploit_client* renderer) {
     renderer->client = new android::SurfaceComposerClient();
     
     android::DisplayInfo display_info;
@@ -26,7 +45,7 @@ int initialize_renderer(exploit_renderer* renderer) {
 
     android::sp<android::SurfaceControl> surface_control = 
         ((android::SurfaceComposerClient*)renderer->client)->createSurface(
-            android::String8("exploit_overlay"),
+            android::String8("exploit_client"),
             renderer->screen_width,
             renderer->screen_height,
             PIXEL_FORMAT_RGBA_8888,
@@ -77,13 +96,13 @@ int initialize_renderer(exploit_renderer* renderer) {
     return 1;
 }
 
-void render_frame(exploit_renderer* renderer) {
+void render_frame(exploit_client* renderer) {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     eglSwapBuffers(renderer->display, renderer->egl_surface);
 }
 
-void cleanup_renderer(exploit_renderer* renderer) {
+void cleanup_renderer(exploit_client* renderer) {
     eglMakeCurrent(renderer->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(renderer->display, renderer->context);
     eglDestroySurface(renderer->display, renderer->egl_surface);
