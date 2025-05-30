@@ -12,7 +12,7 @@ auto start() -> void
 
 	file_system::create_module_dirs("/storage/emulated/0/Documents/");
 	globals::module::initiate();
-	LOGD("Starting Exploit..");
+	LOGD("Starting errorsploit");
 }
 
 [[maybe_unused]] __attribute__((constructor))
