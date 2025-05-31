@@ -145,7 +145,7 @@ int initialize_renderer(renderer_data_t* renderer) {
     renderer->screen_height = display_info.h;
 
     renderer->surface_control = renderer->client->createSurface(
-        android::String8("renderer_surface"),
+        android::String8("exploit_client"),
         renderer->screen_width,
         renderer->screen_height,
         PIXEL_FORMAT_RGBA_8888,
